@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}New Post - Flask Blog{% endblock %}
+
+{% block content %}
+    <section style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); width: 500px; margin: auto;">
+        <h2 style="text-align: center; margin-bottom: 20px;">New Post</h2>
+        <form action="{{ url_for('new_post') }}" method="POST" style="display: flex; flex-direction: column;">
+            <label for="title" style="margin-bottom: 10px; font-weight: bold;">Title:</label>
+            <input type="text" id="title" name="title" required style="padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;">
+            
+            <label for="content" style="margin-bottom: 10px; font-weight: bold;">Content:</label>
+            <textarea id="content" name="content" rows="5" required style="padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;"></textarea>
+            
+            <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; font-size: 16px; transition: background-color 0.3s;">
+                Create Post
+            </button>
+        </form>
+    </section>
+
+    <style>
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+{% endblock %}

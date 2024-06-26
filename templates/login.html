@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Login - Flask Blog{% endblock %}
+
+{% block content %}
+    <section style="background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); width: 300px; margin: auto;">
+        <h2 style="text-align: center; margin-bottom: 20px;">Login</h2>
+        <form action="{{ url_for('login') }}" method="POST" style="display: flex; flex-direction: column;">
+            <label for="username" style="margin-bottom: 10px;">Username:</label>
+            <input type="text" id="username" name="username" required style="padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px;">
+            <label for="password" style="margin-bottom: 10px;">Password:</label>
+            <input type="password" id="password" name="password" required style="padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 14px;">
+            <button type="submit" style="background-color: #4CAF50; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 3px; font-size: 14px;">Login</button>
+        </form>
+    </section>
+{% endblock %}
+

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+    <article style="background-color: #fff; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+        <h1 style="text-align: center; margin-bottom: 20px;">{{ post.title }}</h1>
+        <p><strong>Author:</strong> {{ post.author }}</p>
+        <p><strong>Posted on:</strong> {{ post.created_at.strftime('%B %d, %Y') }}</p>
+        <div style="margin-top: 20px;">
+            {{ post.content }}
+        </div>
+    </article>
+{% endblock %}
+
