@@ -7,9 +7,9 @@ app.secret_key = 'your_secret_key'
 
 # Configure MySQL
 app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'admin'  # replace with your MySQL username
-app.config['MYSQL_PASSWORD'] = 'admin'  # replace with your MySQL password
-app.config['MYSQL_DB'] = 'blog'
+app.config['MYSQL_USER'] = 'wpuser'  # replace with your MySQL username
+app.config['MYSQL_PASSWORD'] = 'wpuser'  # replace with your MySQL password
+app.config['MYSQL_DB'] = 'myapp'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
 mysql = MySQL(app)
