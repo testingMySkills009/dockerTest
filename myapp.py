@@ -7,7 +7,7 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 # Configure MySQL
-app.config['MYSQL_HOST'] = 'db'  # Use 'db' for Docker service name
+app.config['MYSQL_HOST'] = 'mariadb'  # Use 'db' for Docker service name
 app.config['MYSQL_USER'] = 'wpuser'  # replace with your MySQL username
 app.config['MYSQL_PASSWORD'] = 'wpuser'  # replace with your MySQL password
 app.config['MYSQL_DB'] = 'myapp'
