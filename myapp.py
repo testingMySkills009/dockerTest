@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_mysqldb import MySQL
 from werkzeug.security import generate_password_hash, check_password_hash
+import MySQLdb
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 # Configure MySQL
-app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_HOST'] = 'db'  # Use 'db' for Docker service name
 app.config['MYSQL_USER'] = 'wpuser'  # replace with your MySQL username
 app.config['MYSQL_PASSWORD'] = 'wpuser'  # replace with your MySQL password
 app.config['MYSQL_DB'] = 'myapp'
@@ -17,6 +18,35 @@ mysql = MySQL(app)
 # Utility function to check if user is logged in
 def is_logged_in():
     return 'logged_in' in session
+
+# Initialize the database
+def init_db():
+    cur = mysql.connection.cursor()
+    # Create users table if it doesn't exist
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(50) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) DEFAULT NULL
+        )
+    ''')
+    # Create blog_posts table if it doesn't exist
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS blog_posts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            title VARCHAR(100) NOT NULL,
+            content TEXT NOT NULL,
+            author_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (author_id) REFERENCES users(id)
+        )
+    ''')
+    mysql.connection.commit()
+    cur.close()
+
+@app.before_first_request
+def before_first_request():
+    init_db()
 
 # Routes
 
@@ -133,4 +163,3 @@ def view_post(post_id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-
