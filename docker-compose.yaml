@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:10.5
+    container_name: mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rajpoot786
+      MYSQL_DATABASE: myapp
+      MYSQL_USER: wpuser
+      MYSQL_PASSWORD: wpuser
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  flask_app:
+    build: .
+    container_name: flask_app
+    restart: always
+    environment:
+      FLASK_APP: wsgi.py
+      FLASK_ENV: development
+      DATABASE_USER: wpuser
+      DATABASE_PASSWORD: wpuser
+      DATABASE_HOST: mariadb
+      DATABASE_NAME: myapp
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mariadb
+
+volumes:
+  mariadb_data:
+

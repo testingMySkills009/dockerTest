@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, g, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
@@ -8,8 +8,8 @@ app.secret_key = 'your_secret_key'
 
 # Configure SQLAlchemy
 app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"mysql+pymysql://{os.getenv('wpuser')}:{os.getenv('wpuser')}@"
-    f"{os.getenv('db')}/{os.getenv('myapp')}"
+    f"mysql+pymysql://{os.getenv('DATABASE_USER')}:{os.getenv('DATABASE_PASSWORD')}@"
+    f"{os.getenv('DATABASE_HOST')}/{os.getenv('DATABASE_NAME')}"
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -30,9 +30,11 @@ class BlogPost(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 # Initialize the database
-@app.before_first_request
-def before_first_request():
-    db.create_all()
+@app.before_request
+def before_request():
+    if not hasattr(g, 'db_initialized'):
+        db.create_all()
+        g.db_initialized = True
 
 # Utility function to check if user is logged in
 def is_logged_in():
