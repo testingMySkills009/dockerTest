@@ -1,71 +1,55 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
-from flask_mysqldb import MySQL
+from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-import MySQLdb
+import os
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# Configure MySQL
-app.config['MYSQL_HOST'] = 'mariadb'  # Use 'db' for Docker service name
-app.config['MYSQL_USER'] = 'wpuser'  # replace with your MySQL username
-app.config['MYSQL_PASSWORD'] = 'wpuser'  # replace with your MySQL password
-app.config['MYSQL_DB'] = 'myapp'
-app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
+# Configure SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = (
+    f"mysql+pymysql://{os.getenv('wpuser')}:{os.getenv('wpuser')}@"
+    f"{os.getenv('db')}/{os.getenv('myapp')}"
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-mysql = MySQL(app)
+db = SQLAlchemy(app)
+
+# Define your models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)
+    blog_posts = db.relationship('BlogPost', backref='author', lazy=True)
+
+class BlogPost(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+# Initialize the database
+@app.before_first_request
+def before_first_request():
+    db.create_all()
 
 # Utility function to check if user is logged in
 def is_logged_in():
     return 'logged_in' in session
-
-# Initialize the database
-def init_db():
-    cur = mysql.connection.cursor()
-    # Create users table if it doesn't exist
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(50) NOT NULL UNIQUE,
-            password_hash VARCHAR(255) DEFAULT NULL
-        )
-    ''')
-    # Create blog_posts table if it doesn't exist
-    cur.execute('''
-        CREATE TABLE IF NOT EXISTS blog_posts (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            title VARCHAR(100) NOT NULL,
-            content TEXT NOT NULL,
-            author_id INT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (author_id) REFERENCES users(id)
-        )
-    ''')
-    mysql.connection.commit()
-    cur.close()
-
-@app.before_first_request
-def before_first_request():
-    init_db()
 
 # Routes
 
 @app.route('/')
 def index():
     # Logic to fetch and display blog posts
-    cur = mysql.connection.cursor()
-    cur.execute('SELECT * FROM blog_posts ORDER BY created_at DESC')
-    blog_posts = cur.fetchall()
-    cur.close()
+    blog_posts = BlogPost.query.order_by(BlogPost.created_at.desc()).all()
     return render_template('index.html', blog_posts=blog_posts)
 
 @app.route('/post/<int:post_id>')
 def post(post_id):
     # Logic to fetch and display a single blog post
-    cur = mysql.connection.cursor()
-    cur.execute('SELECT * FROM blog_posts WHERE id = %s', [post_id])
-    post = cur.fetchone()
-    cur.close()
+    post = BlogPost.query.get(post_id)
     return render_template('post.html', post=post)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -74,11 +58,8 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        cur = mysql.connection.cursor()
-        cur.execute('SELECT * FROM users WHERE username = %s', [username])
-        user = cur.fetchone()
-        cur.close()
-        if user and check_password_hash(user['password_hash'], password):
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password_hash, password):
             session['logged_in'] = True
             session['username'] = username
             flash('You are now logged in', 'success')
@@ -98,12 +79,10 @@ def new_post():
         content = request.form['content']
         author = session['username']
 
-        cur = mysql.connection.cursor()
-        cur.execute('SELECT id FROM users WHERE username = %s', [author])
-        author_id = cur.fetchone()['id']
-        cur.execute('INSERT INTO blog_posts (title, content, author_id) VALUES (%s, %s, %s)', (title, content, author_id))
-        mysql.connection.commit()
-        cur.close()
+        author_user = User.query.filter_by(username=author).first()
+        new_post = BlogPost(title=title, content=content, author=author_user)
+        db.session.add(new_post)
+        db.session.commit()
 
         flash('Blog post created', 'success')
         return redirect(url_for('index'))
@@ -127,17 +106,14 @@ def signup():
             flash('Invalid referral code', 'danger')
             return redirect(url_for('signup'))
 
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
-        user = cur.fetchone()
-
+        user = User.query.filter_by(username=username).first()
         if user:
             flash('Username already exists', 'danger')
             return redirect(url_for('signup'))
 
-        cur.execute("INSERT INTO users (username, password_hash) VALUES (%s, %s)", (username, hashed_password))
-        mysql.connection.commit()
-        cur.close()
+        new_user = User(username=username, password_hash=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
         flash('Signup successful', 'success')
         return redirect(url_for('login'))
 
@@ -145,16 +121,7 @@ def signup():
 
 @app.route('/post/<int:post_id>')
 def view_post(post_id):
-    cur = mysql.connection.cursor()
-    cur.execute('''
-        SELECT blog_posts.title, blog_posts.content, blog_posts.created_at, users.username as author 
-        FROM blog_posts 
-        JOIN users ON blog_posts.author_id = users.id 
-        WHERE blog_posts.id = %s
-    ''', (post_id,))
-    post = cur.fetchone()
-    cur.close()
-
+    post = BlogPost.query.join(User).filter(BlogPost.id == post_id).first()
     if post:
         return render_template('view_post.html', post=post)
     else:
